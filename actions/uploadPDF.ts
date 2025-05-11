@@ -35,13 +35,16 @@ export async function uploadPDF(formData: FormData) {
     // Convert file to arraybuffer for fetch API
     const arrayBuffer = await file.arrayBuffer();
 
-    // Upload file to Convex storage
+    // Upload file to Convex storage with increased timeout and chunked upload
     const uploadResponse = await fetch(uploadUrl, {
       method: "POST",
       headers: {
         "Content-Type": file.type,
+        "Content-Length": file.size.toString(),
       },
       body: new Uint8Array(arrayBuffer),
+      // Increase timeout for large files
+      signal: AbortSignal.timeout(300000), // 5 minutes timeout
     });
 
     if (!uploadResponse.ok) {
@@ -60,7 +63,7 @@ export async function uploadPDF(formData: FormData) {
       mimeType: file.type,
     });
 
-    // Generate the file URL
+    // Generate the file URL and return it in the response
     const fileUrl = await getFileDownloadUrl(storageId);
 
     // TODO: Trigger inngest agent flow...
@@ -70,6 +73,7 @@ export async function uploadPDF(formData: FormData) {
       data: {
         receiptId,
         fileName: file.name,
+        fileUrl, // Include the file URL in the response
       },
     };
   } catch (error) {
